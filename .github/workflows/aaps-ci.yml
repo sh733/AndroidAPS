@@ -18,8 +18,8 @@ jobs:
           cache: 'gradle'
 
       - name: Decode Keystore
-        # Декодируем и кладем ключ сразу в папку app для надежности
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/aaps.jks
+        # Кладем ключ в корень проекта
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > aaps.jks
 
       - name: Force Fix Translation Errors
         run: |
@@ -30,21 +30,18 @@ jobs:
           git commit -m "Fix translations" || echo "No changes"
 
       - name: Build Phone APK
-        run: ./gradlew :app:assembleFullRelease -x test
-        env:
-          # Прописываем все варианты имен переменных для подписи
-          KEYSTORE_FILE: aaps.jks
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          RELEASE_KEYSTORE_FILE: aaps.jks
-          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          RELEASE_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        # Принудительно передаем параметры ключа прямо в команду сборки
+        run: |
+          ./gradlew :app:assembleFullRelease -x test \
+          -Pandroid.injected.signing.store.file=$(pwd)/aaps.jks \
+          -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
+          -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
+          -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
 
       - name: Upload Phone Artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: AndroidAPS-Final
-          path: "app/build/outputs/apk/full/release/app-full-release.apk"
+          name: AndroidAPS-Phone-Signed
+          # Берем любой APK из папки release, чтобы не ошибиться с путем
+          path: "app/build/outputs/apk/full/release/*.apk"
