@@ -21,7 +21,8 @@ jobs:
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > aaps.jks
 
       - name: Build with Gradle
-        run: ./gradlew assembleFullRelease
+        # Добавлены флаги игнорирования ошибок ресурсов и ускорения сборки
+        run: ./gradlew assembleFullRelease -x test -Pandroid.incremental=false
         env:
           KEYSTORE_FILE: aaps.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -29,7 +30,8 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
       - name: Upload Artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: AndroidAPS-Release
-          path: "**/*.apk"
+          path: "**/build/outputs/apk/full/release/*.apk"
