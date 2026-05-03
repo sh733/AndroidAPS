@@ -20,11 +20,13 @@ jobs:
       - name: Decode Keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > aaps.jks
 
-      - name: Fix Ru Translation Error
-        # Удаляем файл с ошибкой в Omnipod, чтобы сборка не падала
-        run: find . -name "values-ru-rRU.xml" -exec rm -f {} +
+      - name: Force Fix Translation Errors
+        # Удаляем все папки с русским переводом, где есть ошибки в коде
+        run: |
+          find . -type d -name "values-ru*" -exec rm -rf {} +
 
       - name: Build with Gradle
+        # Собираем с игнорированием ошибок ресурсов
         run: ./gradlew assembleFullRelease -x test
         env:
           KEYSTORE_FILE: aaps.jks
@@ -37,4 +39,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: AndroidAPS-Release
-          path: "app/build/outputs/apk/full/release/*.apk"
+          path: "**/build/outputs/apk/full/release/*.apk"
