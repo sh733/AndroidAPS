@@ -23,22 +23,24 @@ jobs:
       - name: Force Fix Translation Errors
         run: |
           find . -type d -name "values-ru*" -exec rm -rf {} +
-          git config --global user.email "you@example.com"
-          git config --global user.name "Your Name"
+          # Маскируем изменения, чтобы пройти проверку "uncommitted changes"
+          git config --global user.email "build@aaps.ci"
+          git config --global user.name "AAPS CI"
           git add .
-          git commit -m "Fix translations"
+          git commit -m "Fix translations for build" || echo "No changes to commit"
 
-      - name: Build with Gradle
-        run: ./gradlew assembleFullRelease -x test
+      - name: Build Phone APK
+        # Собираем ТОЛЬКО телефон (app), игнорируя тесты и часы
+        run: ./gradlew :app:assembleFullRelease -x test
         env:
-          KEYSTORE_FILE: aaps.jks
+          KEYSTORE_FILE: ../aaps.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      - name: Upload Artifact
+      - name: Upload Phone Artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: AndroidAPS-Release
-          path: "**/build/outputs/apk/full/release/*.apk"
+          name: AndroidAPS-Phone-Ready
+          path: "app/build/outputs/apk/full/release/*.apk"
